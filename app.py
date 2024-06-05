@@ -1,6 +1,24 @@
+import os
+
 import streamlit as st
 import pandas as pd
 import numpy as np
+import sqlite3
+
+# CREATING DATABASE AND TABLEs HERE
+db_path = os.getcwd() + '//db//mydb.db'
+conn = sqlite3.connect(db_path)
+#create tables
+def create_db():
+    try:
+        #create user table
+        conn.execute(
+            'CREATE TABLE IF NOT EXISTS users_table (User_ID INTEGER PRIMARY KEY AUTOINCREMENT, Email VARCHAR, username, Password VARCHAR, Reg_Date)')
+        st.success('User Table Created successfully')
+    except sqlite3.Error as error:
+        print('error while connecting to db', error)
+    finally:
+        conn.close()
 
 #THEME
 Blue = '''
@@ -35,6 +53,7 @@ def main():
 
     #Creating Login Form
     if not st.session_state['logged_in']:
+        st.subheader('please contact admin for login details')
         with st.form("Login_Form"):
             st.write("Please log in")
             username = st.text_input("Username")
@@ -47,9 +66,9 @@ def main():
                 st.session_state['logged_in'] = True #sets login true
                 st.session_state['username'] = uname    #Add username to session
                 st.success("Logged in successfully")    #Display success message
-
-                #Reload the Page so that the login page will go away for the home page to appear
-                st.rerun()
+                # call create
+                create_db()
+                st.rerun()  #Reload the Page so that the login page will go away for the home page to appear
 
                 #if username does not match display error message
             else:
@@ -60,17 +79,19 @@ def main():
     #PROTECTED CONTENTS STARTS HERE
 
     #Show content if logged in
+
     if st.session_state['logged_in']:
         sidebar= st.sidebar.write(f"Welcome, {st.session_state['username']}") #shows username on the sidebar
         # Adding Logout button on the side bar and using it to Logout user When clicked
         if st.sidebar.button("Log out"):
             st.session_state['logged_in'] = False
+
             # MAKES THE APP TO RELOAD WHEN LOGGED OUT
             st.rerun()
 
 
         #Adding select box on the Sidebar
-        page = st.sidebar.selectbox("Select a page", ["Page 1", "Page 2", "Page 3"]) #Add to side bar
+        page = st.sidebar.selectbox("Select a page", ["Page 1", "Page 2", "Page 3", "Create-acc"]) #Add to side bar
         if page =="Page 1":
             st.write("Welcome to ANALYSIS Page 1")
         elif page == "Page 2":
@@ -79,6 +100,32 @@ def main():
             st.write("Welcome to ANALYSIS Page 3")
             #Adds text on the side bar when this page is loaded
             st.sidebar.write("Am in side bar")
+        elif page == "Create-acc":
+            st.title("Create Account")
+            if st.session_state['logged_in']:
+
+                #Creating Account form
+                with st.form("Login_Form"):
+                    st.write("Please log in")
+                    username = st.text_input("Username")
+                    email = st.text_input("Email")
+                    password = st.text_input("Password", type="password")
+                    reg_date = st.date_input("Registration date")
+                    create_acc_button = st.form_submit_button("Create account")
+
+                if create_acc_button:
+                    #Get User Details and Insert Data Into the user Table
+                    try:
+                        with sqlite3.connect(db_path) as conne:
+                            cur = conne.cursor()
+                            cur.execute("INSERT INTO users_table (Email, username, password, reg_date) VALUES (?,?,?,?)",
+                                    (email, username, password, reg_date))
+                            conne.commit()
+                            st.success('user Account Created Successfully')
+                    except sqlite3.Error as err:
+                        conne.rollback()
+                        print("error occured during Account Creation", err)
+
 
 
 
