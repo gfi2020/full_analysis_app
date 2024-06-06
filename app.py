@@ -6,6 +6,8 @@ import numpy as np
 import sqlite3
 import plotly.express as px #install plotly and use it for the analysis in page 1
 from geopy.geocoders import Nominatim   #import geopy for writing the programme to locate places
+#TO LOAD EXCEL DATA SET YOU MUST INSTALL pip install openpyxl
+
 
 # CREATING DATABASE AND TABLEs HERE
 from PIL import Image
@@ -306,14 +308,10 @@ def main():
         elif page == "Page 3":
             st.write("ANALYSIS WITH DATA THAT HAS ONLY STATE OR CITY, WE GENERATE LAT AND LON IN PYTHON FOR MAP")
 
-            data = {
-                "City": ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix"],
-                "State": ["NY", "CA", "IL", "TX", "AZ"],
-                "Sales": [250000, 200000, 150000, 120000, 100000]
-                # "Latitude": [40.7128, 34.0522, 41.8781, 29.7604, 33.4484],
-                # "Longitude": [-74.0060, -118.2437, -87.6298, -95.3698, -112.0740]
-            }
-            data
+            df = pd.read_excel('dataset/sales.xlsx')  # for reading excel file
+            st.write("Imported Data set")
+            #ORIGINAL DATASET
+            df
 
             # COLLECTING FROM THE TEXT AREA DIRECTLY WITHOUT USING FORM
             # Analysis with Longitude and Latitude
@@ -336,42 +334,51 @@ def main():
                         longitudes.append(None)
                 return latitudes, longitudes
 
-            # Streamlit app
+            # tITLING MY GEOLOCATIONS DISPLAY ON MAP
             st.title("Geocode Locations and Display on Map")
 
-            # Input locations (cities or addresses)
-            locations_input = st.text_area("Enter locations (one per line)", "New York\nLos Angeles\nChicago")
-            # Process input
-            locations = [loc.strip() for loc in locations_input.split('\n') if loc.strip()]
+            #GET LOCATION STATES FROM MY DATASET COLUMN STATE
+            locations_input_dataset = df["state"]
 
-            # Geocode locations
+            # Process / GET LOCATION OF PLACES ON THE MAP USING THE STATES PROVIDED ABOVE
+            locations = [loc.strip() for loc in locations_input_dataset]
+
+            # Geocode locations (Get the lontitude and latitude of states positions on the map
             latitudes, longitudes = geocode_locations(locations)
 
-            # Create DataFrame
-            df = pd.DataFrame({
-                "Location": locations,
-                "Latitude": latitudes,
-                "Longitude": longitudes
-            })
+            # Add LATITUDE AND LONGITUDE VALUES TO MY DATAFRAME DF (ADDING NEW COLUMS)
+            df['Latitude'] = latitudes
+            df['Longitude'] = longitudes
 
-            # Display DataFrame
-            st.write("Geocoded Locations")
-            st.write(df)
+            #VIEW THE NEW DATASET
+            df
 
-            # Filter out locations with missing coordinates
-            df = df.dropna(subset=["Latitude", "Longitude"])
+            #CALCULATING TOTAL SUM OF SALES (this will form our new dataframe
+            df_state_sales = df.groupby("state").sum().reset_index()  # summing all the sales
+
+            #SHOW THE NEW DATAFRAME ON THE PAGE
+            st.write("Total sales grouped by state")
+            st.write(df_state_sales)
 
             # Create map
             fig = px.scatter_mapbox(
-                df,
+                df_state_sales,
+                hover_data="sales",
+                hover_name="state",
                 lat="Latitude",
                 lon="Longitude",
-                hover_name="Location",
-                zoom=3,
+                zoom=4,
                 mapbox_style="carto-positron"
             )
 
             st.plotly_chart(fig)
+
+
+
+
+
+
+
 
 
 
